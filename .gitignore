@@ -15,3 +15,4 @@ data/
 *.bmp
 *.heic
 .DS_Store
+gfpgan/
