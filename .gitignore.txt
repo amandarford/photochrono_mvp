@@ -1,0 +1,44 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# ---- Virtual environments ----
+.venv/
+env/
+venv/
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Databases ----
+*.db
+*.sqlite
+data/
+
+# ---- Image outputs ----
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.bmp
+*.heic
+*_enhanced.*
+*_super.*
+
+# ---- OS / Editor files ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# ---- Packaging ----
+*.egg-info/
+dist/
+build/

@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+env/
+*.log
+*.db
+data/
+.venv/
+*_enhanced.*
+*_super.*
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.bmp
+*.heic
+.DS_Store

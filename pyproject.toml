@@ -1,0 +1,17 @@
+# pyproject.toml
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = '''
+(
+  ^\.venv/
+| ^data/
+| \.png$
+| \.jpg$
+| \.jpeg$
+| \.tif$
+| \.tiff$
+| \.bmp$
+| \.heic$
+)
+'''
