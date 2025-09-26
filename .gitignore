@@ -16,3 +16,4 @@ data/
 *.heic
 .DS_Store
 gfpgan/
+gfpgan/weights/
