@@ -1,23 +1,18 @@
-#!/bin/bash
-set -euo pipefail
-cd "$(dirname "$0")"
+#!/bin/sh
+set -eu
+DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$DIR"
 
-source .venv/bin/activate
+# Prefer Python 3.10 (required for our LTS combo)
+if command -v python3.10 >/dev/null 2>&1; then PY=python3.10; else PY=python3; fi
 
-# Discover PySide6 paths
-PY6_DIR=$(.venv/bin/python - <<'PY'
-import PySide6, pathlib
-print(pathlib.Path(PySide6.__file__).parent)
-PY
-)
+# venv on 3.10
+if [ ! -d ".venv" ]; then
+  "$PY" -m venv .venv
+fi
+. ".venv/bin/activate"
+python -m pip -q install -U pip || true
+[ -f requirements.txt ] && pip -q install -r requirements.txt || true
 
-# De-quarantine (harmless if already clean)
-xattr -dr com.apple.quarantine "$PY6_DIR" 2>/dev/null || true
-
-export QT_PLUGIN_PATH="$PY6_DIR/Qt/plugins"
-export QT_QPA_PLATFORM_PLUGIN_PATH="$PY6_DIR/Qt/plugins/platforms"
-export DYLD_FRAMEWORK_PATH="$PY6_DIR/Qt/lib"
-export DYLD_LIBRARY_PATH="$PY6_DIR/Qt/lib:${DYLD_LIBRARY_PATH:-}"
-export QT_MAC_WANTS_LAYER=1
-
-python -m app.main
+# run as a module so relative imports work
+exec python -m app.main

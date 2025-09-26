@@ -17,3 +17,6 @@ data/
 .DS_Store
 gfpgan/
 gfpgan/weights/
+.venv
+__pycache__
+*.pyc
