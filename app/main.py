@@ -1,5 +1,7 @@
 # app/main.py
 import os, pathlib, PySide6
+os.environ.setdefault("QT_MAC_WANTS_LAYER", "1")           # layer-backed NSViews (fixes flush crashes)
+os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
 from PySide6.QtCore import QCoreApplication
 
 qt = pathlib.Path(PySide6.__file__).parent / "Qt"
@@ -11,12 +13,12 @@ QCoreApplication.addLibraryPath(str(plugins))
 os.environ["DYLD_FRAMEWORK_PATH"] = str(frameworks)
 os.environ["DYLD_LIBRARY_PATH"] = str(frameworks)
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import 
 from .ui import PhotoChronoWindow
 
 
 def main():
-    app = QApplication([])
+    app = ([])
     win = PhotoChronoWindow()
     win.show()
     app.exec()

@@ -1,3 +1,4 @@
+# app/ui.py
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -12,9 +13,10 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QHBoxLayout,
 )
-
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal, Qt
 import os
+
+from .ui_tagging import TaggingPanel  # Tagging dock
 
 from .utils.logger import app_logger
 from .utils.db import DB
@@ -56,7 +58,8 @@ class ImportThread(QThread):
                     if row:
                         self.db.update_exif_date(row["id"], exif_dt)
             except Exception as e:
-                app_logger.log(f"Import error on {os.path.basename(path)}: {e}")
+                app_logger.log(
+                    f"Import error on {os.path.basename(path)}: {e}")
 
             self.progress.emit(i, total)
             count += 1
@@ -83,6 +86,16 @@ class PhotoChronoWindow(QMainWindow):
         self._build_enhance_tab()
         self._build_writeback_tab()
         self._build_logs_tab()
+
+        # --- Tagging dock (menu toggled or via button) ---
+        self.tagDock = TaggingPanel(db="data/photochrono.db", parent=self)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.tagDock)
+        self.tagDock.hide()  # start hidden
+
+        # --- Menu action (still available if you want it) ---
+        self.taggingAct = self.menuBar().addAction("Tagging…")
+        self.taggingAct.setShortcut("Ctrl+T")
+        self.taggingAct.triggered.connect(self.toggle_tagging_panel)
 
     # ----------------- Import Tab -----------------
     def _build_import_tab(self):
@@ -128,24 +141,29 @@ class PhotoChronoWindow(QMainWindow):
         w = QWidget()
         lay = QVBoxLayout(w)
 
-        lay.addWidget(
-            QLabel(
-                "Active Tagging (MVP placeholder)\n"
-                "- Coming: pick lowest-confidence photos to tag people & coarse date ranges."
-            )
-        )
-        btn = QPushButton("Run Face Index (stub embeddings)")
-        btn.clicked.connect(self._run_face_index)
-        lay.addWidget(btn)
+        lay.addWidget(QLabel("Tagging"))
+
+        btn_open = QPushButton("Open Tagging Panel")
+        btn_open.clicked.connect(self.open_tagging_panel)
+        lay.addWidget(btn_open)
+
+        btn_index = QPushButton("Run Face Index (stub embeddings)")
+        btn_index.clicked.connect(self._run_face_index)
+        lay.addWidget(btn_index)
 
         self.tabs.addTab(w, "Tagging")
+
+    def open_tagging_panel(self):
+        if not self.tagDock.isVisible():
+            self.tagDock.show()
+        self.tagDock.raise_()
+        self.tagDock.activateWindow()
 
     def _run_face_index(self):
         indexer = FaceIndexer(self.db)
         n = indexer.index()
         QMessageBox.information(
-            self, "Face Index", f"Indexed faces/embeddings for {n} photos (stub)."
-        )
+            self, "Face Index", f"Indexed faces/embeddings for {n} photos (stub).")
 
     # ----------------- Timeline Tab -----------------
     def _build_timeline_tab(self):
@@ -166,10 +184,10 @@ class PhotoChronoWindow(QMainWindow):
     def _infer_dates(self):
         self._log("Date inference started…")
         n, accepted = self.date_infer.run_inference()
-        self._log(f"Date inference finished. Inferred: {n}, high-confidence accepted: {accepted}.")
+        self._log(
+            f"Date inference finished. Inferred: {n}, high-confidence accepted: {accepted}.")
         self.timeline_label.setText(
-            f"Inferred dates for {n} photos. Accepted high-confidence: {accepted}"
-        )
+            f"Inferred dates for {n} photos. Accepted high-confidence: {accepted}")
 
     # ----------------- Enhance Tab -----------------
     def _build_enhance_tab(self):
@@ -197,12 +215,12 @@ class PhotoChronoWindow(QMainWindow):
                 new_path = quick_enhance(r["path"], strength=0.25)
                 if new_path:
                     out += 1
-                    self._log(f"Gentle enhanced → {os.path.basename(new_path)}")
+                    self._log(
+                        f"Gentle enhanced → {os.path.basename(new_path)}")
             except Exception as e:
                 self._log(f"Enhance (gentle) error: {e}")
         QMessageBox.information(
-            self, "Enhance", f"Gentle enhanced {out} photos (wrote *_enhanced.png)."
-        )
+            self, "Enhance", f"Gentle enhanced {out} photos (wrote *_enhanced.png).")
 
     def _enhance_sample_super(self):
         rows = self.db.list_photos(limit=5)
@@ -211,7 +229,8 @@ class PhotoChronoWindow(QMainWindow):
         errs = 0
         for r in rows:
             try:
-                new_path = super_enhance(r["path"], scale=2, face_restore=True, tile=256)
+                new_path = super_enhance(
+                    r["path"], scale=2, face_restore=True, tile=256)
                 if new_path:
                     out += 1
                     self._log(f"Super enhanced → {os.path.basename(new_path)}")
@@ -219,8 +238,7 @@ class PhotoChronoWindow(QMainWindow):
                 errs += 1
                 self._log(f"Super Enhance error: {e}")
         QMessageBox.information(
-            self, "Super Enhance", f"AI enhanced {out} photos (wrote *_super.png). Errors: {errs}"
-        )
+            self, "Super Enhance", f"AI enhanced {out} photos (wrote *_super.png). Errors: {errs}")
 
     # ----------------- Write-back Tab -----------------
     def _build_writeback_tab(self):
@@ -243,8 +261,7 @@ class PhotoChronoWindow(QMainWindow):
         changed = writeback_high_confidence(self.db)
         self._log(f"Write-back complete. Updated {changed} photos.")
         QMessageBox.information(
-            self, "Write-back", f"Wrote metadata for {changed} photos (>= threshold)."
-        )
+            self, "Write-back", f"Wrote metadata for {changed} photos (>= threshold).")
 
     def _writeback_all(self):
         self._log("Write-back (ALL inferred) started…")
@@ -254,7 +271,17 @@ class PhotoChronoWindow(QMainWindow):
                 if write_exif_datetime(row["path"], row["inferred_date"]):
                     changed += 1
         self._log(f"Write-back (ALL) complete. Updated {changed} photos.")
-        QMessageBox.information(self, "Write-back (ALL)", f"Wrote metadata for {changed} photos.")
+        QMessageBox.information(self, "Write-back (ALL)",
+                                f"Wrote metadata for {changed} photos.")
+
+    # ----------------- Tagging Dock Toggle -----------------
+    def toggle_tagging_panel(self):
+        if self.tagDock.isVisible():
+            self.tagDock.hide()
+        else:
+            self.tagDock.show()
+            self.tagDock.raise_()
+            self.tagDock.activateWindow()
 
     # ----------------- Logs -----------------
     def _build_logs_tab(self):
@@ -263,9 +290,8 @@ class PhotoChronoWindow(QMainWindow):
 
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
-        self.log_view.setMaximumBlockCount(5000)  # auto-trim old lines
+        self.log_view.setMaximumBlockCount(5000)
 
-        # tiny toolbar: Clear / Copy
         bar = QHBoxLayout()
         btn_clear = QPushButton("Clear")
         btn_copy = QPushButton("Copy All")
@@ -279,15 +305,12 @@ class PhotoChronoWindow(QMainWindow):
         v.addLayout(bar)
         v.addWidget(self.log_view)
 
-        # connect global logger to UI
         app_logger.message.connect(self._append_log)
 
         self.tabs.addTab(w, "Logs")
 
     def _append_log(self, line: str):
-        """Slot for AppLogger.message — safe from any thread."""
         self.log_view.appendPlainText(line)
-        # also mirror to status bar (5s)
         self.statusBar().showMessage(line, 5000)
 
     def _copy_logs_to_clipboard(self):
@@ -298,5 +321,4 @@ class PhotoChronoWindow(QMainWindow):
         self.log_view.setTextCursor(cursor)
 
     def _log(self, msg: str):
-        """Convenience helper for this class."""
         app_logger.log(msg)
